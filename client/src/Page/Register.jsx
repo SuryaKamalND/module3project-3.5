@@ -1,173 +1,254 @@
-import { useState } from "react";
+import { useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 
-function Register() {
-
+const Register = () => {
+  // Form field states
   const [formData, setFormData] = useState({
-    name: "",
-    email: "",
-    password: "",
-    confirmPassword: ""
+    name: '',
+    email: '',
+    password: '',
+    confirmPassword: ''
   });
 
+  // UI states
   const [errors, setErrors] = useState({});
   const [isLoading, setIsLoading] = useState(false);
-  const [successMessage, setSuccessMessage] = useState("");
-  const [apiError, setApiError] = useState("");
+  const [successMessage, setSuccessMessage] = useState('');
+  const [apiError, setApiError] = useState('');
 
+  // Navigation hook
+  const navigate = useNavigate();
+
+  // Handle input changes
   const handleChange = (e) => {
     const { name, value } = e.target;
-
-    setFormData({
-      ...formData,
+    
+    setFormData(prev => ({
+      ...prev,
       [name]: value
-    });
+    }));
 
+    // Clear error when user starts typing
     if (errors[name]) {
-      setErrors({
-        ...errors,
-        [name]: ""
-      });
+      setErrors(prev => ({
+        ...prev,
+        [name]: ''
+      }));
     }
   };
 
+  // Form validation
   const validateForm = () => {
     const newErrors = {};
 
+    // Name validation
     if (!formData.name.trim()) {
-      newErrors.name = "Name is required";
+      newErrors.name = 'Name is required';
     } else if (formData.name.trim().length < 2) {
-      newErrors.name = "Name must be at least 2 characters";
+      newErrors.name = 'Name must be at least 2 characters';
+    } else if (formData.name.trim().length > 50) {
+      newErrors.name = 'Name cannot exceed 50 characters';
     }
 
-    if (!formData.email) {
-      newErrors.email = "Email is required";
-    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-      newErrors.email = "Please enter a valid email";
+    // Email validation
+    if (!formData.email.trim()) {
+      newErrors.email = 'Email is required';
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+      newErrors.email = 'Please enter a valid email address';
     }
 
+    // Password validation
     if (!formData.password) {
-      newErrors.password = "Password is required";
+      newErrors.password = 'Password is required';
     } else if (formData.password.length < 6) {
-      newErrors.password = "Password must be at least 6 characters";
+      newErrors.password = 'Password must be at least 6 characters';
     }
 
-    if (formData.confirmPassword !== formData.password) {
-      newErrors.confirmPassword = "Passwords do not match";
+    // Confirm password validation
+    if (!formData.confirmPassword) {
+      newErrors.confirmPassword = 'Please confirm your password';
+    } else if (formData.password !== formData.confirmPassword) {
+      newErrors.confirmPassword = 'Passwords do not match';
     }
 
     setErrors(newErrors);
-
+    
     return Object.keys(newErrors).length === 0;
   };
 
+  // Handle form submit
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    setSuccessMessage("");
-    setApiError("");
+    setSuccessMessage('');
+    setApiError('');
 
-    if (!validateForm()) return;
+    if (!validateForm()) {
+      return;
+    }
+
+    setIsLoading(true);
 
     try {
+      const registrationData = {
+        name: formData.name.trim(),
+        email: formData.email.trim().toLowerCase(),
+        password: formData.password
+      };
 
-      setIsLoading(true);
-
-      const response = await fetch("/api/users/register", {
-        method: "POST",
+      const response = await fetch('/api/users/register', {
+        method: 'POST',
         headers: {
-          "Content-Type": "application/json"
+          'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          name: formData.name.trim(),
-          email: formData.email.toLowerCase(),
-          password: formData.password
-        })
+        body: JSON.stringify(registrationData)
       });
 
       const data = await response.json();
 
       if (response.ok) {
 
-        setSuccessMessage("Account created successfully!");
+        setSuccessMessage('Account created successfully! Redirecting to login...');
 
         setFormData({
-          name: "",
-          email: "",
-          password: "",
-          confirmPassword: ""
+          name: '',
+          email: '',
+          password: '',
+          confirmPassword: ''
         });
 
+        setTimeout(() => {
+          navigate('/login');
+        }, 2000);
+
       } else {
-        setApiError(data.message || "Registration failed");
+        setApiError(data.message || 'Registration failed. Please try again.');
       }
 
     } catch (error) {
-      setApiError("Unable to connect to server");
+      console.error('Registration error:', error);
+      setApiError('Unable to connect to server. Please check your connection and try again.');
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <div style={{ width: "400px", margin: "50px auto" }}>
-      <h2>Create Account</h2>
+    <div style={containerStyle}>
+      <div style={formContainerStyle}>
+        <h1 style={titleStyle}>Create Your Account</h1>
+        <p style={subtitleStyle}>
+          Join our platform and start creating today
+        </p>
 
-      {successMessage && <p style={{ color: "green" }}>{successMessage}</p>}
-      {apiError && <p style={{ color: "red" }}>{apiError}</p>}
+        {successMessage && (
+          <div style={successStyle}>
+            {successMessage}
+          </div>
+        )}
 
-      <form onSubmit={handleSubmit}>
+        {apiError && (
+          <div style={errorMessageStyle}>
+            {apiError}
+          </div>
+        )}
 
-        <div>
-          <input
-            type="text"
-            name="name"
-            placeholder="Name"
-            value={formData.name}
-            onChange={handleChange}
-          />
-          {errors.name && <p style={{color:"red"}}>{errors.name}</p>}
-        </div>
+        <form onSubmit={handleSubmit} style={formStyle}>
 
-        <div>
-          <input
-            type="email"
-            name="email"
-            placeholder="Email"
-            value={formData.email}
-            onChange={handleChange}
-          />
-          {errors.email && <p style={{color:"red"}}>{errors.email}</p>}
-        </div>
+          <div style={fieldStyle}>
+            <label htmlFor="name" style={labelStyle}>
+              Name *
+            </label>
+            <input
+              type="text"
+              id="name"
+              name="name"
+              value={formData.name}
+              onChange={handleChange}
+              placeholder="Enter your full name"
+              style={errors.name ? inputErrorStyle : inputStyle}
+              disabled={isLoading}
+            />
+            {errors.name && (
+              <span style={errorTextStyle}>{errors.name}</span>
+            )}
+          </div>
 
-        <div>
-          <input
-            type="password"
-            name="password"
-            placeholder="Password"
-            value={formData.password}
-            onChange={handleChange}
-          />
-          {errors.password && <p style={{color:"red"}}>{errors.password}</p>}
-        </div>
+          <div style={fieldStyle}>
+            <label htmlFor="email" style={labelStyle}>
+              Email *
+            </label>
+            <input
+              type="email"
+              id="email"
+              name="email"
+              value={formData.email}
+              onChange={handleChange}
+              placeholder="Enter your email"
+              style={errors.email ? inputErrorStyle : inputStyle}
+              disabled={isLoading}
+            />
+            {errors.email && (
+              <span style={errorTextStyle}>{errors.email}</span>
+            )}
+          </div>
 
-        <div>
-          <input
-            type="password"
-            name="confirmPassword"
-            placeholder="Confirm Password"
-            value={formData.confirmPassword}
-            onChange={handleChange}
-          />
-          {errors.confirmPassword && <p style={{color:"red"}}>{errors.confirmPassword}</p>}
-        </div>
+          <div style={fieldStyle}>
+            <label htmlFor="password" style={labelStyle}>
+              Password *
+            </label>
+            <input
+              type="password"
+              id="password"
+              name="password"
+              value={formData.password}
+              onChange={handleChange}
+              placeholder="Create a password (min 6 characters)"
+              style={errors.password ? inputErrorStyle : inputStyle}
+              disabled={isLoading}
+            />
+            {errors.password && (
+              <span style={errorTextStyle}>{errors.password}</span>
+            )}
+          </div>
 
-        <button type="submit" disabled={isLoading}>
-          {isLoading ? "Creating Account..." : "Sign Up"}
-        </button>
+          <div style={fieldStyle}>
+            <label htmlFor="confirmPassword" style={labelStyle}>
+              Confirm Password *
+            </label>
+            <input
+              type="password"
+              id="confirmPassword"
+              name="confirmPassword"
+              value={formData.confirmPassword}
+              onChange={handleChange}
+              placeholder="Re-enter your password"
+              style={errors.confirmPassword ? inputErrorStyle : inputStyle}
+              disabled={isLoading}
+            />
+            {errors.confirmPassword && (
+              <span style={errorTextStyle}>{errors.confirmPassword}</span>
+            )}
+          </div>
 
-      </form>
+          <button 
+            type="submit" 
+            style={isLoading ? buttonDisabledStyle : buttonStyle}
+            disabled={isLoading}
+          >
+            {isLoading ? 'Creating Account...' : 'Sign Up'}
+          </button>
+        </form>
+
+        <p style={linkTextStyle}>
+          Already have an account?{' '}
+          <Link to="/login" style={linkStyle}>
+            Login here
+          </Link>
+        </p>
+      </div>
     </div>
   );
-}
+};
 
 export default Register;
